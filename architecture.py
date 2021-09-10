@@ -3,6 +3,7 @@ from binaryninja.enums import InstructionTextTokenType
 from binaryninja.function import InstructionInfo, RegisterInfo, InstructionTextToken
 
 from .disassembler import disassemble
+from . import ebpf
 
 
 class EBPFArchitecture(Architecture):
@@ -10,8 +11,8 @@ class EBPFArchitecture(Architecture):
 
     address_size = 8
     default_int_size = 8
-    instr_alignment = 8
-    max_instr_length = 8
+    instr_alignment = ebpf.INSN_SIZE
+    max_instr_length = ebpf.INSN_SIZE
 
     regs = {
         "r0": RegisterInfo("r0", 8),
@@ -31,11 +32,11 @@ class EBPFArchitecture(Architecture):
 
     def get_instruction_info(self, data, addr):
         result = InstructionInfo()
-        result.length = 8
+        result.length = ebpf.INSN_SIZE
         return result
 
     def get_instruction_text(self, data, addr):
-        return disassemble(data), 8
+        return disassemble(addr, data), ebpf.INSN_SIZE
 
     def get_instruction_low_level_il(self, data, addr, il):
         return None

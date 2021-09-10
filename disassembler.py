@@ -40,7 +40,7 @@ def do_imm(imm):
         return InstructionTextToken(InstructionTextTokenType.IntegerToken, f"{imm:#x}"),
 
 
-def alu_imm_str(name, insn):
+def alu_imm(name, insn):
     return [
         InstructionTextToken(InstructionTextTokenType.InstructionToken, name),
         InstructionTextToken(InstructionTextTokenType.TextToken, " "),
@@ -51,7 +51,7 @@ def alu_imm_str(name, insn):
     ]
 
 
-def alu_reg_str(name, insn):
+def alu_reg(name, insn):
     return [
         InstructionTextToken(InstructionTextTokenType.InstructionToken, name),
         InstructionTextToken(InstructionTextTokenType.TextToken, " "),
@@ -62,7 +62,14 @@ def alu_reg_str(name, insn):
     ]
 
 
-def byteswap_str(name, insn):
+def neg(name, insn):
+    return [
+        InstructionTextToken(InstructionTextTokenType.InstructionToken, name),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        InstructionTextToken(InstructionTextTokenType.RegisterToken, f"r{insn.dst}"),
+    ]
+
+def byteswap(name, insn):
     return [
         InstructionTextToken(InstructionTextTokenType.InstructionToken, f"{name}{insn.imm}"),
         InstructionTextToken(InstructionTextTokenType.TextToken, " "),
@@ -70,7 +77,7 @@ def byteswap_str(name, insn):
     ]
 
 
-def ld_st_imm_str(name, insn):
+def ld_st_imm(name, insn):
     return [
         InstructionTextToken(InstructionTextTokenType.InstructionToken, name),
         InstructionTextToken(InstructionTextTokenType.TextToken, " "),
@@ -84,7 +91,7 @@ def ld_st_imm_str(name, insn):
     ]
 
 
-def ld_reg_str(name, insn):
+def ld_reg(name, insn):
     return [
         InstructionTextToken(InstructionTextTokenType.InstructionToken, name),
         InstructionTextToken(InstructionTextTokenType.TextToken, " "),
@@ -98,7 +105,7 @@ def ld_reg_str(name, insn):
     ]
 
 
-def st_reg_str(name, insn):
+def st_reg(name, insn):
     return [
         InstructionTextToken(InstructionTextTokenType.InstructionToken, name),
         InstructionTextToken(InstructionTextTokenType.TextToken, " "),
@@ -112,7 +119,7 @@ def st_reg_str(name, insn):
     ]
 
 
-def ldabs_str(name, insn):
+def ldabs(name, insn):
     return [
         InstructionTextToken(InstructionTextTokenType.InstructionToken, name),
         InstructionTextToken(InstructionTextTokenType.TextToken, " "),
@@ -120,7 +127,7 @@ def ldabs_str(name, insn):
     ]
 
 
-def ldind_str(name, insn):
+def ldind(name, insn):
     return [
         InstructionTextToken(InstructionTextTokenType.InstructionToken, name),
         InstructionTextToken(InstructionTextTokenType.TextToken, " "),
@@ -131,7 +138,15 @@ def ldind_str(name, insn):
     ]
 
 
-def jmp_imm_str(name, insn):
+def jmp(name, insn):
+    return [
+        InstructionTextToken(InstructionTextTokenType.InstructionToken, name),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        InstructionTextToken(InstructionTextTokenType.PossibleAddressToken, f"{insn.ptr + insn.off + 8:#x}")
+    ]
+
+
+def jmp_imm(name, insn):
     return [
         InstructionTextToken(InstructionTextTokenType.InstructionToken, name),
         InstructionTextToken(InstructionTextTokenType.TextToken, " "),
@@ -141,11 +156,11 @@ def jmp_imm_str(name, insn):
         *do_imm(insn.imm),
         InstructionTextToken(InstructionTextTokenType.OperandSeparatorToken, ","),
         InstructionTextToken(InstructionTextTokenType.TextToken, " "),
-        InstructionTextToken(InstructionTextTokenType.TextToken, "NOT_IMPLEMENTED")
+        InstructionTextToken(InstructionTextTokenType.PossibleAddressToken, f"{insn.ptr+insn.off+8:#x}")
     ]
 
 
-def jmp_reg_str(name, insn):
+def jmp_reg(name, insn):
     return [
         InstructionTextToken(InstructionTextTokenType.InstructionToken, name),
         InstructionTextToken(InstructionTextTokenType.TextToken, " "),
@@ -155,116 +170,134 @@ def jmp_reg_str(name, insn):
         InstructionTextToken(InstructionTextTokenType.RegisterToken, f"r{insn.src}"),
         InstructionTextToken(InstructionTextTokenType.OperandSeparatorToken, ","),
         InstructionTextToken(InstructionTextTokenType.TextToken, " "),
-        InstructionTextToken(InstructionTextTokenType.TextToken, "NOT_IMPLEMENTED")
+        InstructionTextToken(InstructionTextTokenType.PossibleAddressToken, f"{insn.ptr+insn.off+8:#x}")
     ]
 
 
 MATCH = {
-    ebpf.LD_ABS_B: lambda x: ldabs_str("ldabsb", x),
-    ebpf.LD_ABS_H: lambda x: ldabs_str("ldabsh", x),
-    ebpf.LD_ABS_W: lambda x: ldabs_str("ldabsw", x),
-    ebpf.LD_ABS_DW: lambda x: ldabs_str("ldabsdw", x),
-    ebpf.LD_IND_B: lambda x: ldind_str("ldindb", x),
-    ebpf.LD_IND_H: lambda x: ldind_str("ldindh", x),
-    ebpf.LD_IND_W: lambda x: ldind_str("ldindw", x),
-    ebpf.LD_IND_DW: lambda x: ldind_str("ldinddw", x),
-    ebpf.LD_DW_IMM: lambda x: [InstructionTextToken(InstructionTextTokenType.TextToken, "NOT_IMPLEMENTED")],
-    ebpf.LD_B_REG: lambda x: ld_reg_str("ldxb", x),
-    ebpf.LD_H_REG: lambda x: ld_reg_str("ldxh", x),
-    ebpf.LD_W_REG: lambda x: ld_reg_str("ldxw", x),
-    ebpf.LD_DW_REG: lambda x: ld_reg_str("ldxdw", x),
-    ebpf.ST_B_IMM: lambda x: ld_st_imm_str("stb", x),
-    ebpf.ST_H_IMM: lambda x: ld_st_imm_str("sth", x),
-    ebpf.ST_W_IMM: lambda x: ld_st_imm_str("stw", x),
-    ebpf.ST_DW_IMM: lambda x: ld_st_imm_str("stdw", x),
-    ebpf.ST_B_REG: lambda x: st_reg_str("stxb", x),
-    ebpf.ST_H_REG: lambda x: st_reg_str("stxh", x),
-    ebpf.ST_W_REG: lambda x: st_reg_str("stxw", x),
-    ebpf.ST_DW_REG: lambda x: st_reg_str("stxdw", x),
-    ebpf.ST_W_XADD: lambda x: st_reg_str("stxxaddw", x),
-    ebpf.ST_DW_XADD: lambda x: st_reg_str("stxxadddw", x),
-    ebpf.ADD32_IMM: lambda x: alu_imm_str("add32", x),
-    ebpf.ADD32_REG: lambda x: alu_reg_str("add32", x),
-    ebpf.SUB32_IMM: lambda x: alu_imm_str("sub32", x),
-    ebpf.SUB32_REG: lambda x: alu_reg_str("sub32", x),
-    ebpf.MUL32_IMM: lambda x: alu_imm_str("mul32", x),
-    ebpf.MUL32_REG: lambda x: alu_reg_str("mul32", x),
-    ebpf.DIV32_IMM: lambda x: alu_imm_str("div32", x),
-    ebpf.DIV32_REG: lambda x: alu_reg_str("div32", x),
-    ebpf.OR32_IMM: lambda x: alu_imm_str("or32", x),
-    ebpf.OR32_REG: lambda x: alu_reg_str("or32", x),
-    ebpf.AND32_IMM: lambda x: alu_imm_str("and32", x),
-    ebpf.AND32_REG: lambda x: alu_reg_str("and32", x),
-    ebpf.LSH32_IMM: lambda x: alu_imm_str("lsh32", x),
-    ebpf.LSH32_REG: lambda x: alu_reg_str("lsh32", x),
-    ebpf.RSH32_IMM: lambda x: alu_imm_str("rsh32", x),
-    ebpf.RSH32_REG: lambda x: alu_reg_str("rsh32", x),
-    ebpf.NEG32: lambda x: [InstructionTextToken(InstructionTextTokenType.TextToken, "NOT_IMPLEMENTED")],
-    ebpf.MOD32_IMM: lambda x: alu_imm_str("mod32", x),
-    ebpf.MOD32_REG: lambda x: alu_reg_str("mod32", x),
-    ebpf.XOR32_IMM: lambda x: alu_imm_str("xor32", x),
-    ebpf.XOR32_REG: lambda x: alu_reg_str("xor32", x),
-    ebpf.MOV32_IMM: lambda x: alu_imm_str("mov32", x),
-    ebpf.MOV32_REG: lambda x: alu_reg_str("mov32", x),
-    ebpf.ARSH32_IMM: lambda x: alu_imm_str("arsh32", x),
-    ebpf.ARSH32_REG: lambda x: alu_reg_str("arsh32", x),
-    ebpf.LE: lambda x: byteswap_str("le", x),
-    ebpf.BE: lambda x: byteswap_str("be", x),
-    ebpf.ADD64_IMM: lambda x: alu_imm_str("add64", x),
-    ebpf.ADD64_REG: lambda x: alu_reg_str("add64", x),
-    ebpf.SUB64_IMM: lambda x: alu_imm_str("sub64", x),
-    ebpf.SUB64_REG: lambda x: alu_reg_str("sub64", x),
-    ebpf.MUL64_IMM: lambda x: alu_imm_str("mul64", x),
-    ebpf.MUL64_REG: lambda x: alu_reg_str("mul64", x),
-    ebpf.DIV64_IMM: lambda x: alu_imm_str("div64", x),
-    ebpf.DIV64_REG: lambda x: alu_reg_str("div64", x),
-    ebpf.OR64_IMM: lambda x: alu_imm_str("or64", x),
-    ebpf.OR64_REG: lambda x: alu_reg_str("or64", x),
-    ebpf.AND64_IMM: lambda x: alu_imm_str("and64", x),
-    ebpf.AND64_REG: lambda x: alu_reg_str("and64", x),
-    ebpf.LSH64_IMM: lambda x: alu_imm_str("lsh64", x),
-    ebpf.LSH64_REG: lambda x: alu_reg_str("lsh64", x),
-    ebpf.RSH64_IMM: lambda x: alu_imm_str("rsh64", x),
-    ebpf.RSH64_REG: lambda x: alu_reg_str("rsh64", x),
-    ebpf.NEG64: lambda x: [InstructionTextToken(InstructionTextTokenType.TextToken, "NOT_IMPLEMENTED")],
-    ebpf.MOD64_IMM: lambda x: alu_imm_str("mod64", x),
-    ebpf.MOD64_REG: lambda x: alu_reg_str("mod64", x),
-    ebpf.XOR64_IMM: lambda x: alu_imm_str("xor64", x),
-    ebpf.XOR64_REG: lambda x: alu_reg_str("xor64", x),
-    ebpf.MOV64_IMM: lambda x: alu_imm_str("mov64", x),
-    ebpf.MOV64_REG: lambda x: alu_reg_str("mov64", x),
-    ebpf.ARSH64_IMM: lambda x: alu_imm_str("arsh64", x),
-    ebpf.ARSH64_REG: lambda x: alu_reg_str("arsh64", x),
-    ebpf.JA: lambda x: [InstructionTextToken(InstructionTextTokenType.TextToken, "NOT_IMPLEMENTED")],
-    ebpf.JEQ_IMM: lambda x: jmp_imm_str("jeq", x),
-    ebpf.JEQ_REG: lambda x: jmp_reg_str("jeq", x),
-    ebpf.JGT_IMM: lambda x: jmp_imm_str("jgt", x),
-    ebpf.JGT_REG: lambda x: jmp_reg_str("jgt", x),
-    ebpf.JGE_IMM: lambda x: jmp_imm_str("jge", x),
-    ebpf.JGE_REG: lambda x: jmp_reg_str("jge", x),
-    ebpf.JLT_IMM: lambda x: jmp_imm_str("jlt", x),
-    ebpf.JLT_REG: lambda x: jmp_reg_str("jlt", x),
-    ebpf.JLE_IMM: lambda x: jmp_imm_str("jle", x),
-    ebpf.JLE_REG: lambda x: jmp_reg_str("jle", x),
-    ebpf.JSET_IMM: lambda x: jmp_imm_str("jset", x),
-    ebpf.JSET_REG: lambda x: jmp_reg_str("jset", x),
-    ebpf.JNE_IMM: lambda x: jmp_imm_str("jne", x),
-    ebpf.JNE_REG: lambda x: jmp_reg_str("jne", x),
-    ebpf.JSGT_IMM: lambda x: jmp_imm_str("jsgt", x),
-    ebpf.JSGT_REG: lambda x: jmp_reg_str("jsgt", x),
-    ebpf.JSGE_IMM: lambda x: jmp_imm_str("jsge", x),
-    ebpf.JSGE_REG: lambda x: jmp_reg_str("jsge", x),
-    ebpf.JSLT_IMM: lambda x: jmp_imm_str("jslt", x),
-    ebpf.JSLT_REG: lambda x: jmp_reg_str("jslt", x),
-    ebpf.JSLE_IMM: lambda x: jmp_imm_str("jsle", x),
-    ebpf.JSLE_REG: lambda x: jmp_reg_str("jsle", x),
-    ebpf.CALL_IMM: lambda x: [InstructionTextToken(InstructionTextTokenType.TextToken, "NOT_IMPLEMENTED")],
-    ebpf.CALL_REG: lambda x: [InstructionTextToken(InstructionTextTokenType.TextToken, "NOT_IMPLEMENTED")],
-    ebpf.EXIT: lambda x: [InstructionTextToken(InstructionTextTokenType.TextToken, "NOT_IMPLEMENTED")]
+    ebpf.LD_ABS_B: lambda insn: ldabs("ldabsb", insn),
+    ebpf.LD_ABS_H: lambda insn: ldabs("ldabsh", insn),
+    ebpf.LD_ABS_W: lambda insn: ldabs("ldabsw", insn),
+    ebpf.LD_ABS_DW: lambda insn: ldabs("ldabsdw", insn),
+    ebpf.LD_IND_B: lambda insn: ldind("ldindb", insn),
+    ebpf.LD_IND_H: lambda insn: ldind("ldindh", insn),
+    ebpf.LD_IND_W: lambda insn: ldind("ldindw", insn),
+    ebpf.LD_IND_DW: lambda insn: ldind("ldinddw", insn),
+    ebpf.LD_DW_IMM: lambda insn: [
+        InstructionTextToken(InstructionTextTokenType.InstructionToken, "lddw"),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        InstructionTextToken(InstructionTextTokenType.RegisterToken, f"r{insn.dst}"),
+        InstructionTextToken(InstructionTextTokenType.OperandSeparatorToken, ","),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        *do_imm(insn.imm)
+    ],
+    ebpf.LD_B_REG: lambda insn: ld_reg("ldxb", insn),
+    ebpf.LD_H_REG: lambda insn: ld_reg("ldxh", insn),
+    ebpf.LD_W_REG: lambda insn: ld_reg("ldxw", insn),
+    ebpf.LD_DW_REG: lambda insn: ld_reg("ldxdw", insn),
+    ebpf.ST_B_IMM: lambda insn: ld_st_imm("stb", insn),
+    ebpf.ST_H_IMM: lambda insn: ld_st_imm("sth", insn),
+    ebpf.ST_W_IMM: lambda insn: ld_st_imm("stw", insn),
+    ebpf.ST_DW_IMM: lambda insn: ld_st_imm("stdw", insn),
+    ebpf.ST_B_REG: lambda insn: st_reg("stxb", insn),
+    ebpf.ST_H_REG: lambda insn: st_reg("stxh", insn),
+    ebpf.ST_W_REG: lambda insn: st_reg("stxw", insn),
+    ebpf.ST_DW_REG: lambda insn: st_reg("stxdw", insn),
+    ebpf.ST_W_XADD: lambda insn: st_reg("stxxaddw", insn),
+    ebpf.ST_DW_XADD: lambda insn: st_reg("stxxadddw", insn),
+    ebpf.ADD32_IMM: lambda insn: alu_imm("add32", insn),
+    ebpf.ADD32_REG: lambda insn: alu_reg("add32", insn),
+    ebpf.SUB32_IMM: lambda insn: alu_imm("sub32", insn),
+    ebpf.SUB32_REG: lambda insn: alu_reg("sub32", insn),
+    ebpf.MUL32_IMM: lambda insn: alu_imm("mul32", insn),
+    ebpf.MUL32_REG: lambda insn: alu_reg("mul32", insn),
+    ebpf.DIV32_IMM: lambda insn: alu_imm("div32", insn),
+    ebpf.DIV32_REG: lambda insn: alu_reg("div32", insn),
+    ebpf.OR32_IMM: lambda insn: alu_imm("or32", insn),
+    ebpf.OR32_REG: lambda insn: alu_reg("or32", insn),
+    ebpf.AND32_IMM: lambda insn: alu_imm("and32", insn),
+    ebpf.AND32_REG: lambda insn: alu_reg("and32", insn),
+    ebpf.LSH32_IMM: lambda insn: alu_imm("lsh32", insn),
+    ebpf.LSH32_REG: lambda insn: alu_reg("lsh32", insn),
+    ebpf.RSH32_IMM: lambda insn: alu_imm("rsh32", insn),
+    ebpf.RSH32_REG: lambda insn: alu_reg("rsh32", insn),
+    ebpf.NEG32: lambda insn: neg("neg32", insn),
+    ebpf.MOD32_IMM: lambda insn: alu_imm("mod32", insn),
+    ebpf.MOD32_REG: lambda insn: alu_reg("mod32", insn),
+    ebpf.XOR32_IMM: lambda insn: alu_imm("xor32", insn),
+    ebpf.XOR32_REG: lambda insn: alu_reg("xor32", insn),
+    ebpf.MOV32_IMM: lambda insn: alu_imm("mov32", insn),
+    ebpf.MOV32_REG: lambda insn: alu_reg("mov32", insn),
+    ebpf.ARSH32_IMM: lambda insn: alu_imm("arsh32", insn),
+    ebpf.ARSH32_REG: lambda insn: alu_reg("arsh32", insn),
+    ebpf.LE: lambda insn: byteswap("le", insn),
+    ebpf.BE: lambda insn: byteswap("be", insn),
+    ebpf.ADD64_IMM: lambda insn: alu_imm("add64", insn),
+    ebpf.ADD64_REG: lambda insn: alu_reg("add64", insn),
+    ebpf.SUB64_IMM: lambda insn: alu_imm("sub64", insn),
+    ebpf.SUB64_REG: lambda insn: alu_reg("sub64", insn),
+    ebpf.MUL64_IMM: lambda insn: alu_imm("mul64", insn),
+    ebpf.MUL64_REG: lambda insn: alu_reg("mul64", insn),
+    ebpf.DIV64_IMM: lambda insn: alu_imm("div64", insn),
+    ebpf.DIV64_REG: lambda insn: alu_reg("div64", insn),
+    ebpf.OR64_IMM: lambda insn: alu_imm("or64", insn),
+    ebpf.OR64_REG: lambda insn: alu_reg("or64", insn),
+    ebpf.AND64_IMM: lambda insn: alu_imm("and64", insn),
+    ebpf.AND64_REG: lambda insn: alu_reg("and64", insn),
+    ebpf.LSH64_IMM: lambda insn: alu_imm("lsh64", insn),
+    ebpf.LSH64_REG: lambda insn: alu_reg("lsh64", insn),
+    ebpf.RSH64_IMM: lambda insn: alu_imm("rsh64", insn),
+    ebpf.RSH64_REG: lambda insn: alu_reg("rsh64", insn),
+    ebpf.NEG64: lambda insn: neg("neg64", insn),
+    ebpf.MOD64_IMM: lambda insn: alu_imm("mod64", insn),
+    ebpf.MOD64_REG: lambda insn: alu_reg("mod64", insn),
+    ebpf.XOR64_IMM: lambda insn: alu_imm("xor64", insn),
+    ebpf.XOR64_REG: lambda insn: alu_reg("xor64", insn),
+    ebpf.MOV64_IMM: lambda insn: alu_imm("mov64", insn),
+    ebpf.MOV64_REG: lambda insn: alu_reg("mov64", insn),
+    ebpf.ARSH64_IMM: lambda insn: alu_imm("arsh64", insn),
+    ebpf.ARSH64_REG: lambda insn: alu_reg("arsh64", insn),
+    ebpf.JA: lambda insn: jmp("ja", insn),
+    ebpf.JEQ_IMM: lambda insn: jmp_imm("jeq", insn),
+    ebpf.JEQ_REG: lambda insn: jmp_reg("jeq", insn),
+    ebpf.JGT_IMM: lambda insn: jmp_imm("jgt", insn),
+    ebpf.JGT_REG: lambda insn: jmp_reg("jgt", insn),
+    ebpf.JGE_IMM: lambda insn: jmp_imm("jge", insn),
+    ebpf.JGE_REG: lambda insn: jmp_reg("jge", insn),
+    ebpf.JLT_IMM: lambda insn: jmp_imm("jlt", insn),
+    ebpf.JLT_REG: lambda insn: jmp_reg("jlt", insn),
+    ebpf.JLE_IMM: lambda insn: jmp_imm("jle", insn),
+    ebpf.JLE_REG: lambda insn: jmp_reg("jle", insn),
+    ebpf.JSET_IMM: lambda insn: jmp_imm("jset", insn),
+    ebpf.JSET_REG: lambda insn: jmp_reg("jset", insn),
+    ebpf.JNE_IMM: lambda insn: jmp_imm("jne", insn),
+    ebpf.JNE_REG: lambda insn: jmp_reg("jne", insn),
+    ebpf.JSGT_IMM: lambda insn: jmp_imm("jsgt", insn),
+    ebpf.JSGT_REG: lambda insn: jmp_reg("jsgt", insn),
+    ebpf.JSGE_IMM: lambda insn: jmp_imm("jsge", insn),
+    ebpf.JSGE_REG: lambda insn: jmp_reg("jsge", insn),
+    ebpf.JSLT_IMM: lambda insn: jmp_imm("jslt", insn),
+    ebpf.JSLT_REG: lambda insn: jmp_reg("jslt", insn),
+    ebpf.JSLE_IMM: lambda insn: jmp_imm("jsle", insn),
+    ebpf.JSLE_REG: lambda insn: jmp_reg("jsle", insn),
+    ebpf.CALL_IMM: lambda insn: jmp("call", insn),
+    ebpf.CALL_REG: lambda insn: [
+        InstructionTextToken(InstructionTextTokenType.InstructionToken, "callx"),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        InstructionTextToken(InstructionTextTokenType.RegisterToken, f"r{insn.dst}")
+    ],
+    ebpf.EXIT: lambda insn: [
+        InstructionTextToken(InstructionTextTokenType.InstructionToken, "exit")
+    ]
 }
 
 
-def disassemble(data):
-    insn = ebpf.EBPFInstruction(data)
+def disassemble(addr, data):
+    insn = ebpf.EBPFInstruction(addr, data)
 
-    return MATCH.get(insn.opc, lambda x: [InstructionTextToken(InstructionTextTokenType.TextToken, "NOT_IMPLEMENTED")])(insn)
+    if insn.opc in MATCH:
+        return MATCH[insn.opc](insn)
+    else:
+        return [
+            InstructionTextToken(InstructionTextTokenType.InstructionToken, "undefined")
+        ]

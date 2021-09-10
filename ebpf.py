@@ -182,7 +182,8 @@ BPF_ALU_OP_MASK = 0xf0
 
 
 class EBPFInstruction:
-    def __init__(self, data):
+    def __init__(self, ptr, data):
+        self.ptr = ptr
         self.opc, src_dst, self.off, self.imm = unpack("<BBhi", data)
         self.src = src_dst >> 4
         self.dst = src_dst & 0x0f
