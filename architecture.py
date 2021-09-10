@@ -1,7 +1,7 @@
 from binaryninja.architecture import Architecture
-from binaryninja.enums import InstructionTextTokenType
-from binaryninja.function import InstructionInfo, RegisterInfo, InstructionTextToken
+from binaryninja.function import RegisterInfo
 
+from .brancher import branch
 from .disassembler import disassemble
 from . import ebpf
 
@@ -31,11 +31,15 @@ class EBPFArchitecture(Architecture):
     stack_pointer = "r10"
 
     def get_instruction_info(self, data, addr):
-        result = InstructionInfo()
-        result.length = ebpf.INSN_SIZE
-        return result
+        if len(data) != ebpf.INSN_SIZE:
+            return None
+
+        return branch(addr, data)
 
     def get_instruction_text(self, data, addr):
+        if len(data) != ebpf.INSN_SIZE:
+            return None
+
         return disassemble(addr, data), ebpf.INSN_SIZE
 
     def get_instruction_low_level_il(self, data, addr, il):

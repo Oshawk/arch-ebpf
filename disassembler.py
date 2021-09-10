@@ -69,6 +69,7 @@ def neg(name, insn):
         InstructionTextToken(InstructionTextTokenType.RegisterToken, f"r{insn.dst}"),
     ]
 
+
 def byteswap(name, insn):
     return [
         InstructionTextToken(InstructionTextTokenType.InstructionToken, f"{name}{insn.imm}"),
@@ -138,14 +139,6 @@ def ldind(name, insn):
     ]
 
 
-def jmp(name, insn):
-    return [
-        InstructionTextToken(InstructionTextTokenType.InstructionToken, name),
-        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
-        InstructionTextToken(InstructionTextTokenType.PossibleAddressToken, f"{insn.ptr + insn.off + 8:#x}")
-    ]
-
-
 def jmp_imm(name, insn):
     return [
         InstructionTextToken(InstructionTextTokenType.InstructionToken, name),
@@ -156,7 +149,7 @@ def jmp_imm(name, insn):
         *do_imm(insn.imm),
         InstructionTextToken(InstructionTextTokenType.OperandSeparatorToken, ","),
         InstructionTextToken(InstructionTextTokenType.TextToken, " "),
-        InstructionTextToken(InstructionTextTokenType.PossibleAddressToken, f"{insn.ptr+insn.off+8:#x}")
+        InstructionTextToken(InstructionTextTokenType.PossibleAddressToken, f"{insn.ptr + (insn.off + 1) * ebpf.INSN_SIZE:#x}")
     ]
 
 
@@ -170,7 +163,7 @@ def jmp_reg(name, insn):
         InstructionTextToken(InstructionTextTokenType.RegisterToken, f"r{insn.src}"),
         InstructionTextToken(InstructionTextTokenType.OperandSeparatorToken, ","),
         InstructionTextToken(InstructionTextTokenType.TextToken, " "),
-        InstructionTextToken(InstructionTextTokenType.PossibleAddressToken, f"{insn.ptr+insn.off+8:#x}")
+        InstructionTextToken(InstructionTextTokenType.PossibleAddressToken, f"{insn.ptr + (insn.off + 1) * ebpf.INSN_SIZE:#x}")
     ]
 
 
@@ -257,7 +250,11 @@ MATCH = {
     ebpf.MOV64_REG: lambda insn: alu_reg("mov64", insn),
     ebpf.ARSH64_IMM: lambda insn: alu_imm("arsh64", insn),
     ebpf.ARSH64_REG: lambda insn: alu_reg("arsh64", insn),
-    ebpf.JA: lambda insn: jmp("ja", insn),
+    ebpf.JA: lambda insn: [
+        InstructionTextToken(InstructionTextTokenType.InstructionToken, "ja"),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        InstructionTextToken(InstructionTextTokenType.PossibleAddressToken, f"{insn.ptr + (insn.off + 1) * ebpf.INSN_SIZE:#x}")
+    ],
     ebpf.JEQ_IMM: lambda insn: jmp_imm("jeq", insn),
     ebpf.JEQ_REG: lambda insn: jmp_reg("jeq", insn),
     ebpf.JGT_IMM: lambda insn: jmp_imm("jgt", insn),
@@ -280,7 +277,11 @@ MATCH = {
     ebpf.JSLT_REG: lambda insn: jmp_reg("jslt", insn),
     ebpf.JSLE_IMM: lambda insn: jmp_imm("jsle", insn),
     ebpf.JSLE_REG: lambda insn: jmp_reg("jsle", insn),
-    ebpf.CALL_IMM: lambda insn: jmp("call", insn),
+    ebpf.CALL_IMM: lambda insn: [
+        InstructionTextToken(InstructionTextTokenType.InstructionToken, "call"),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        InstructionTextToken(InstructionTextTokenType.PossibleAddressToken, f"{insn.ptr + (insn.imm + 1) * ebpf.INSN_SIZE:#x}")
+    ],
     ebpf.CALL_REG: lambda insn: [
         InstructionTextToken(InstructionTextTokenType.InstructionToken, "callx"),
         InstructionTextToken(InstructionTextTokenType.TextToken, " "),
