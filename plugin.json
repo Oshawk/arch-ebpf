@@ -1,0 +1,43 @@
+{
+  "pluginmetadataversion": 2,
+  "name": "eBPF Architecture",
+  "type": [
+    "architecture"
+  ],
+  "api": [
+    "python3"
+  ],
+  "description": "",
+  "longdescription": "",
+  "license": {
+    "name": "",
+    "text": ""
+  },
+  "platforms": [
+    "Darwin",
+    "Linux",
+    "Windows"
+  ],
+  "installinstructions": {
+    "Darwin": "",
+    "Linux": "",
+    "Windows": ""
+  },
+  "dependencies": {
+    "pip": [
+      ""
+    ],
+    "apt": [
+      ""
+    ],
+    "installers": [
+      ""
+    ],
+    "other": [
+      ""
+    ]
+  },
+  "version": "0.0.1",
+  "author": "Oshawk",
+  "minimumbinaryninjaversion": 1200
+}
