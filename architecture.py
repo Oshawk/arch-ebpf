@@ -35,8 +35,7 @@ class EBPFArchitecture(Architecture):
         return result
 
     def get_instruction_text(self, data, addr):
-        tokens = [InstructionTextToken(InstructionTextTokenType.TextToken, disassemble(data))]
-        return tokens, 8
+        return disassemble(data), 8
 
     def get_instruction_low_level_il(self, data, addr, il):
         return None

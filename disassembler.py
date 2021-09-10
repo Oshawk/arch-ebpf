@@ -1,53 +1,162 @@
 # Adapted from https://github.com/solana-labs/rbpf/blob/main/src/disassembler.rs
 
+from struct import pack, unpack
+
+from binaryninja.enums import InstructionTextTokenType
+from binaryninja.function import InstructionTextToken
+
 from . import ebpf
 
 
-def format_off(off):
-    if off >= 0:
-        return f"+0x{off:x}"
+def do_off(off):
+    if off <= -16:
+        return (
+            InstructionTextToken(InstructionTextTokenType.TextToken, "-"),
+            InstructionTextToken(InstructionTextTokenType.IntegerToken, f"{-off:#x}")
+        )
+    elif off < 0:
+        return (
+            InstructionTextToken(InstructionTextTokenType.TextToken, "-"),
+            InstructionTextToken(InstructionTextTokenType.IntegerToken, f"{-off}")
+        )
+    elif off == 0:
+        return tuple()
+    elif off < 16:
+        return (
+            InstructionTextToken(InstructionTextTokenType.TextToken, "+"),
+            InstructionTextToken(InstructionTextTokenType.IntegerToken, f"{off}")
+        )
     else:
-        return f"-0x{abs(off):x}"
+        return (
+            InstructionTextToken(InstructionTextTokenType.TextToken, "+"),
+            InstructionTextToken(InstructionTextTokenType.IntegerToken, f"{off:#x}")
+        )
+
+
+def do_imm(imm):
+    if abs(imm) < 16:
+        return InstructionTextToken(InstructionTextTokenType.IntegerToken, f"{imm}"),
+    else:
+        return InstructionTextToken(InstructionTextTokenType.IntegerToken, f"{imm:#x}"),
 
 
 def alu_imm_str(name, insn):
-    return f"{name} r{insn.dst}, {insn.imm}"
+    return [
+        InstructionTextToken(InstructionTextTokenType.InstructionToken, name),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        InstructionTextToken(InstructionTextTokenType.RegisterToken, f"r{insn.dst}"),
+        InstructionTextToken(InstructionTextTokenType.OperandSeparatorToken, ","),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        *do_imm(insn.imm)
+    ]
 
 
 def alu_reg_str(name, insn):
-    return f"{name} r{insn.dst}, r{insn.src}"
+    return [
+        InstructionTextToken(InstructionTextTokenType.InstructionToken, name),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        InstructionTextToken(InstructionTextTokenType.RegisterToken, f"r{insn.dst}"),
+        InstructionTextToken(InstructionTextTokenType.OperandSeparatorToken, ","),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        InstructionTextToken(InstructionTextTokenType.RegisterToken, f"r{insn.src}")
+    ]
 
 
 def byteswap_str(name, insn):
-    return f"{name}{insn.imm} r{insn.dst}"
+    return [
+        InstructionTextToken(InstructionTextTokenType.InstructionToken, f"{name}{insn.imm}"),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        InstructionTextToken(InstructionTextTokenType.RegisterToken, f"r{insn.dst}"),
+    ]
 
 
 def ld_st_imm_str(name, insn):
-    return f"{name} [r{insn.dst}{format_off(insn.off)}], {insn.imm}"
+    return [
+        InstructionTextToken(InstructionTextTokenType.InstructionToken, name),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        InstructionTextToken(InstructionTextTokenType.BeginMemoryOperandToken, "["),
+        InstructionTextToken(InstructionTextTokenType.RegisterToken, f"r{insn.dst}"),
+        *do_off(insn.off),
+        InstructionTextToken(InstructionTextTokenType.EndMemoryOperandToken, "]"),
+        InstructionTextToken(InstructionTextTokenType.OperandSeparatorToken, ","),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        *do_imm(insn.imm)
+    ]
 
 
 def ld_reg_str(name, insn):
-    return f"{name} r{insn.dst}, [r{insn.src}{format_off(insn.off)}]"
+    return [
+        InstructionTextToken(InstructionTextTokenType.InstructionToken, name),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        InstructionTextToken(InstructionTextTokenType.RegisterToken, f"r{insn.dst}"),
+        InstructionTextToken(InstructionTextTokenType.OperandSeparatorToken, ","),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        InstructionTextToken(InstructionTextTokenType.BeginMemoryOperandToken, "["),
+        InstructionTextToken(InstructionTextTokenType.RegisterToken, f"r{insn.src}"),
+        *do_off(insn.off),
+        InstructionTextToken(InstructionTextTokenType.EndMemoryOperandToken, "]")
+    ]
 
 
 def st_reg_str(name, insn):
-    return f"{name} [r{insn.dst}{format_off(insn.off)}], r{insn.src}"
+    return [
+        InstructionTextToken(InstructionTextTokenType.InstructionToken, name),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        InstructionTextToken(InstructionTextTokenType.BeginMemoryOperandToken, "["),
+        InstructionTextToken(InstructionTextTokenType.RegisterToken, f"r{insn.dst}"),
+        *do_off(insn.off),
+        InstructionTextToken(InstructionTextTokenType.EndMemoryOperandToken, "]"),
+        InstructionTextToken(InstructionTextTokenType.OperandSeparatorToken, ","),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        InstructionTextToken(InstructionTextTokenType.RegisterToken, f"r{insn.src}")
+    ]
 
 
 def ldabs_str(name, insn):
-    return f"{name} {insn.imm}"
+    return [
+        InstructionTextToken(InstructionTextTokenType.InstructionToken, name),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        *do_imm(*unpack("<I", pack("<i", insn.imm)))  # imm is unsigned in this context
+    ]
 
 
 def ldind_str(name, insn):
-    return f"{name} r{insn.src}, {insn.imm}"
+    return [
+        InstructionTextToken(InstructionTextTokenType.InstructionToken, name),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        InstructionTextToken(InstructionTextTokenType.RegisterToken, f"r{insn.src}"),
+        InstructionTextToken(InstructionTextTokenType.OperandSeparatorToken, ","),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        *do_imm(*unpack("<I", pack("<i", insn.imm)))  # imm is unsigned in this context
+    ]
 
 
 def jmp_imm_str(name, insn):
-    return f"{name} r{insn.dst}, {insn.imm}, NOT_IMPLEMENTED"
+    return [
+        InstructionTextToken(InstructionTextTokenType.InstructionToken, name),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        InstructionTextToken(InstructionTextTokenType.RegisterToken, f"r{insn.dst}"),
+        InstructionTextToken(InstructionTextTokenType.OperandSeparatorToken, ","),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        *do_imm(insn.imm),
+        InstructionTextToken(InstructionTextTokenType.OperandSeparatorToken, ","),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        InstructionTextToken(InstructionTextTokenType.TextToken, "NOT_IMPLEMENTED")
+    ]
 
 
 def jmp_reg_str(name, insn):
-    return f"{name} r{insn.dst}, r{insn.src}, NOT_IMPLEMENTED"
+    return [
+        InstructionTextToken(InstructionTextTokenType.InstructionToken, name),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        InstructionTextToken(InstructionTextTokenType.RegisterToken, f"r{insn.dst}"),
+        InstructionTextToken(InstructionTextTokenType.OperandSeparatorToken, ","),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        InstructionTextToken(InstructionTextTokenType.RegisterToken, f"r{insn.src}"),
+        InstructionTextToken(InstructionTextTokenType.OperandSeparatorToken, ","),
+        InstructionTextToken(InstructionTextTokenType.TextToken, " "),
+        InstructionTextToken(InstructionTextTokenType.TextToken, "NOT_IMPLEMENTED")
+    ]
 
 
 MATCH = {
@@ -59,7 +168,7 @@ MATCH = {
     ebpf.LD_IND_H: lambda x: ldind_str("ldindh", x),
     ebpf.LD_IND_W: lambda x: ldind_str("ldindw", x),
     ebpf.LD_IND_DW: lambda x: ldind_str("ldinddw", x),
-    ebpf.LD_DW_IMM: lambda x: "NOT_IMPLEMENTED",
+    ebpf.LD_DW_IMM: lambda x: [InstructionTextToken(InstructionTextTokenType.TextToken, "NOT_IMPLEMENTED")],
     ebpf.LD_B_REG: lambda x: ld_reg_str("ldxb", x),
     ebpf.LD_H_REG: lambda x: ld_reg_str("ldxh", x),
     ebpf.LD_W_REG: lambda x: ld_reg_str("ldxw", x),
@@ -90,7 +199,7 @@ MATCH = {
     ebpf.LSH32_REG: lambda x: alu_reg_str("lsh32", x),
     ebpf.RSH32_IMM: lambda x: alu_imm_str("rsh32", x),
     ebpf.RSH32_REG: lambda x: alu_reg_str("rsh32", x),
-    ebpf.NEG32: lambda x: "NOT_IMPLEMENTED",
+    ebpf.NEG32: lambda x: [InstructionTextToken(InstructionTextTokenType.TextToken, "NOT_IMPLEMENTED")],
     ebpf.MOD32_IMM: lambda x: alu_imm_str("mod32", x),
     ebpf.MOD32_REG: lambda x: alu_reg_str("mod32", x),
     ebpf.XOR32_IMM: lambda x: alu_imm_str("xor32", x),
@@ -117,7 +226,7 @@ MATCH = {
     ebpf.LSH64_REG: lambda x: alu_reg_str("lsh64", x),
     ebpf.RSH64_IMM: lambda x: alu_imm_str("rsh64", x),
     ebpf.RSH64_REG: lambda x: alu_reg_str("rsh64", x),
-    ebpf.NEG64: lambda x: "NOT_IMPLEMENTED",
+    ebpf.NEG64: lambda x: [InstructionTextToken(InstructionTextTokenType.TextToken, "NOT_IMPLEMENTED")],
     ebpf.MOD64_IMM: lambda x: alu_imm_str("mod64", x),
     ebpf.MOD64_REG: lambda x: alu_reg_str("mod64", x),
     ebpf.XOR64_IMM: lambda x: alu_imm_str("xor64", x),
@@ -126,7 +235,7 @@ MATCH = {
     ebpf.MOV64_REG: lambda x: alu_reg_str("mov64", x),
     ebpf.ARSH64_IMM: lambda x: alu_imm_str("arsh64", x),
     ebpf.ARSH64_REG: lambda x: alu_reg_str("arsh64", x),
-    ebpf.JA: lambda x: "NOT_IMPLEMENTED",
+    ebpf.JA: lambda x: [InstructionTextToken(InstructionTextTokenType.TextToken, "NOT_IMPLEMENTED")],
     ebpf.JEQ_IMM: lambda x: jmp_imm_str("jeq", x),
     ebpf.JEQ_REG: lambda x: jmp_reg_str("jeq", x),
     ebpf.JGT_IMM: lambda x: jmp_imm_str("jgt", x),
@@ -149,14 +258,13 @@ MATCH = {
     ebpf.JSLT_REG: lambda x: jmp_reg_str("jslt", x),
     ebpf.JSLE_IMM: lambda x: jmp_imm_str("jsle", x),
     ebpf.JSLE_REG: lambda x: jmp_reg_str("jsle", x),
-    ebpf.CALL_IMM: lambda x: "NOT_IMPLEMENTED",
-    ebpf.CALL_REG: lambda x: "NOT_IMPLEMENTED",
-    ebpf.EXIT: lambda x: "NOT_IMPLEMENTED"
+    ebpf.CALL_IMM: lambda x: [InstructionTextToken(InstructionTextTokenType.TextToken, "NOT_IMPLEMENTED")],
+    ebpf.CALL_REG: lambda x: [InstructionTextToken(InstructionTextTokenType.TextToken, "NOT_IMPLEMENTED")],
+    ebpf.EXIT: lambda x: [InstructionTextToken(InstructionTextTokenType.TextToken, "NOT_IMPLEMENTED")]
 }
 
 
 def disassemble(data):
     insn = ebpf.EBPFInstruction(data)
 
-    return MATCH.get(insn.opc, lambda x: "NOT_IMPLEMENTED")(insn)
-
+    return MATCH.get(insn.opc, lambda x: [InstructionTextToken(InstructionTextTokenType.TextToken, "NOT_IMPLEMENTED")])(insn)
