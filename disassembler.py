@@ -3,6 +3,13 @@
 from . import ebpf
 
 
+def format_off(off):
+    if off >= 0:
+        return f"+0x{off:x}"
+    else:
+        return f"-0x{abs(off):x}"
+
+
 def alu_imm_str(name, insn):
     return f"{name} r{insn.dst}, {insn.imm}"
 
@@ -16,15 +23,15 @@ def byteswap_str(name, insn):
 
 
 def ld_st_imm_str(name, insn):
-    return f"{name} [r{insn.dst}+{insn.off:x}], {insn.imm}"
+    return f"{name} [r{insn.dst}{format_off(insn.off)}], {insn.imm}"
 
 
 def ld_reg_str(name, insn):
-    return f"{name} r{insn.dst}, [r{insn.src}+{insn.off:x}]"
+    return f"{name} r{insn.dst}, [r{insn.src}{format_off(insn.off)}]"
 
 
 def st_reg_str(name, insn):
-    return f"{name} [r{insn.dst}+{insn.off:x}], r{insn.src}"
+    return f"{name} [r{insn.dst}{format_off(insn.off)}], r{insn.src}"
 
 
 def ldabs_str(name, insn):
