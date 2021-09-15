@@ -181,9 +181,14 @@ BPF_CLS_MASK = 0x07
 BPF_ALU_OP_MASK = 0xf0
 
 
+# TODO: Make it easier to treat things as signed / unsigned. Maybe do x_u8 / x_i8 or something.
 class EBPFInstruction:
     def __init__(self, ptr, data):
         self.ptr = ptr
         self.opc, src_dst, self.off, self.imm = unpack("<BBhi", data)
         self.src = src_dst >> 4
         self.dst = src_dst & 0x0f
+
+
+def get_memory_address(insn):
+    return insn.ptr + (insn.off + 1) * INSN_SIZE

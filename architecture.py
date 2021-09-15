@@ -4,6 +4,7 @@ from binaryninja.function import RegisterInfo
 from .brancher import branch
 from .disassembler import disassemble
 from . import ebpf
+from .translator import translate
 
 
 class EBPFArchitecture(Architecture):
@@ -43,4 +44,9 @@ class EBPFArchitecture(Architecture):
         return disassemble(addr, data), ebpf.INSN_SIZE
 
     def get_instruction_low_level_il(self, data, addr, il):
-        return None
+        if len(data) < ebpf.INSN_SIZE:
+            return None
+
+        translate(il, addr, data[:ebpf.INSN_SIZE])
+
+        return ebpf.INSN_SIZE

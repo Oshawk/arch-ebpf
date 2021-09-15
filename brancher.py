@@ -5,12 +5,12 @@ from . import ebpf
 
 
 def jmp_cond(insn, result):
-    result.add_branch(BranchType.TrueBranch, insn.ptr + (insn.off + 1) * ebpf.INSN_SIZE)
+    result.add_branch(BranchType.TrueBranch, ebpf.get_memory_address(insn))
     result.add_branch(BranchType.FalseBranch, insn.ptr + 8)
 
 
 MATCH = {
-    ebpf.JA: lambda insn, result: result.add_branch(BranchType.UnconditionalBranch, insn.ptr + (insn.off + 1) * ebpf.INSN_SIZE),
+    ebpf.JA: lambda insn, result: result.add_branch(BranchType.UnconditionalBranch, ebpf.get_memory_address(insn)),
     ebpf.JEQ_IMM: jmp_cond,
     ebpf.JEQ_REG: jmp_cond,
     ebpf.JGT_IMM: jmp_cond,

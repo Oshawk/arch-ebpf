@@ -1,4 +1,5 @@
 # Adapted from https://github.com/solana-labs/rbpf/blob/main/src/disassembler.rs
+# TODO: Redo based on https://github.com/aquynh/capstone/tree/next/arch/BPF (seems to be far more accurate).
 
 from struct import pack, unpack
 
@@ -149,7 +150,7 @@ def jmp_imm(name, insn):
         *do_imm(insn.imm),
         InstructionTextToken(InstructionTextTokenType.OperandSeparatorToken, ","),
         InstructionTextToken(InstructionTextTokenType.TextToken, " "),
-        InstructionTextToken(InstructionTextTokenType.PossibleAddressToken, f"{insn.ptr + (insn.off + 1) * ebpf.INSN_SIZE:#x}")
+        InstructionTextToken(InstructionTextTokenType.PossibleAddressToken, f"{ebpf.get_memory_address(insn):#x}")
     ]
 
 
@@ -163,7 +164,7 @@ def jmp_reg(name, insn):
         InstructionTextToken(InstructionTextTokenType.RegisterToken, f"r{insn.src}"),
         InstructionTextToken(InstructionTextTokenType.OperandSeparatorToken, ","),
         InstructionTextToken(InstructionTextTokenType.TextToken, " "),
-        InstructionTextToken(InstructionTextTokenType.PossibleAddressToken, f"{insn.ptr + (insn.off + 1) * ebpf.INSN_SIZE:#x}")
+        InstructionTextToken(InstructionTextTokenType.PossibleAddressToken, f"{ebpf.get_memory_address(insn):#x}")
     ]
 
 
@@ -253,7 +254,7 @@ MATCH = {
     ebpf.JA: lambda insn: [
         InstructionTextToken(InstructionTextTokenType.InstructionToken, "ja"),
         InstructionTextToken(InstructionTextTokenType.TextToken, " "),
-        InstructionTextToken(InstructionTextTokenType.PossibleAddressToken, f"{insn.ptr + (insn.off + 1) * ebpf.INSN_SIZE:#x}")
+        InstructionTextToken(InstructionTextTokenType.PossibleAddressToken, f"{ebpf.get_memory_address(insn):#x}")
     ],
     ebpf.JEQ_IMM: lambda insn: jmp_imm("jeq", insn),
     ebpf.JEQ_REG: lambda insn: jmp_reg("jeq", insn),
