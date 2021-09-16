@@ -81,6 +81,28 @@ def jmp(il: LowLevelILFunction, insn, op, imm):
         il.mark_label(f)
 
 
+def call(il: LowLevelILFunction, insn, imm):
+    for tmp in range(ebpf.FIRST_SCRATCH_REG, ebpf.FIRST_SCRATCH_REG + ebpf.SCRATCH_REGS):
+        tmp = il.reg(8, f"r{tmp}")
+        il.append(il.push(8, tmp))
+
+    if imm:
+        tmp = il.const(8, ebpf.get_memory_address(insn, False))
+    else:
+        tmp = il.reg(8, f"r{insn.imm}")
+
+    il.append(il.call(tmp))
+
+    for tmp_a in range(ebpf.FIRST_SCRATCH_REG + ebpf.SCRATCH_REGS - 1, ebpf.FIRST_SCRATCH_REG - 1, -1):
+        tmp_b = il.pop(8)
+        il.append(il.set_reg(8, f"r{tmp_a}", tmp_b))
+
+
+def exit_(il: LowLevelILFunction):
+    tmp = il.pop(8)
+    il.append(il.ret(tmp))
+
+
 MAP = {
     ebpf.LD_B_REG: lambda il, insn: ldx(il, insn, 1),
     ebpf.LD_H_REG: lambda il, insn: ldx(il, insn, 2),
@@ -141,7 +163,10 @@ MAP = {
     ebpf.JSLT_IMM: lambda il, insn: jmp(il, insn, il.compare_signed_less_than, True),
     ebpf.JSLT_REG: lambda il, insn: jmp(il, insn, il.compare_signed_less_than, False),
     ebpf.JSLE_IMM: lambda il, insn: jmp(il, insn, il.compare_signed_less_equal, True),
-    ebpf.JSLE_REG: lambda il, insn: jmp(il, insn, il.compare_signed_less_equal, False)
+    ebpf.JSLE_REG: lambda il, insn: jmp(il, insn, il.compare_signed_less_equal, False),
+    ebpf.CALL_IMM: lambda il, insn: call(il, insn, True),
+    ebpf.CALL_REG: lambda il, insn: call(il, insn, False),
+    ebpf.EXIT: lambda il, insn: exit_(il)
 }
 
 

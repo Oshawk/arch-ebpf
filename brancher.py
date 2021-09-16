@@ -33,7 +33,7 @@ MATCH = {
     ebpf.JSLT_REG: jmp_cond,
     ebpf.JSLE_IMM: jmp_cond,
     ebpf.JSLE_REG: jmp_cond,
-    ebpf.CALL_IMM: lambda insn, result: result.add_branch(BranchType.CallDestination, insn.ptr + (insn.imm + 1) * ebpf.INSN_SIZE),
+    ebpf.CALL_IMM: lambda insn, result: result.add_branch(BranchType.CallDestination, ebpf.get_memory_address(insn, False)),
     ebpf.CALL_REG: lambda _, result: result.add_branch(BranchType.IndirectBranch),
     ebpf.EXIT: lambda _, result: result.add_branch(BranchType.FunctionReturn)
 }

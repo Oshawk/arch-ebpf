@@ -281,7 +281,7 @@ MATCH = {
     ebpf.CALL_IMM: lambda insn: [
         InstructionTextToken(InstructionTextTokenType.InstructionToken, "call"),
         InstructionTextToken(InstructionTextTokenType.TextToken, " "),
-        InstructionTextToken(InstructionTextTokenType.PossibleAddressToken, f"{insn.ptr + (insn.imm + 1) * ebpf.INSN_SIZE:#x}")
+        InstructionTextToken(InstructionTextTokenType.PossibleAddressToken, f"{ebpf.get_memory_address(insn, False):#x}")
     ],
     ebpf.CALL_REG: lambda insn: [
         InstructionTextToken(InstructionTextTokenType.InstructionToken, "callx"),

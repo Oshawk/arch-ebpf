@@ -190,5 +190,5 @@ class EBPFInstruction:
         self.dst = src_dst & 0x0f
 
 
-def get_memory_address(insn):
-    return insn.ptr + (insn.off + 1) * INSN_SIZE
+def get_memory_address(insn, off=True):
+    return insn.ptr + ((insn.off if off else insn.imm) + 1) * INSN_SIZE
