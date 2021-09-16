@@ -1,6 +1,6 @@
 # Adapted from https://github.com/solana-labs/rbpf/blob/main/src/ebpf.rs
 
-from struct import unpack
+from struct import pack, unpack
 
 PROG_MAX_INSNS = 65536
 INSN_SIZE = 8
@@ -192,3 +192,7 @@ class EBPFInstruction:
 
 def get_memory_address(insn, off=True):
     return insn.ptr + ((insn.off if off else insn.imm) + 1) * INSN_SIZE
+
+
+def augment_lddw(insn_a, insn_b):
+    insn_a.imm = unpack("<q", pack("<i", insn_b.imm) + pack("<i", insn_a.imm))[0]

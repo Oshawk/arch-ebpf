@@ -1,11 +1,15 @@
 # Adapted from https://github.com/solana-labs/rbpf/blob/main/src/vm.rs
-# TODO: Work out what lddw does. The VM seems to load a qword.
 
 from struct import pack, unpack
 
 from binaryninja.lowlevelil import LowLevelILFunction, LowLevelILLabel
 
 from . import ebpf
+
+
+def ld(il: LowLevelILFunction, insn):
+    tmp = il.const(8, *unpack("<Q", pack("<q", insn.imm))) # Unsigned makes things simpler.
+    il.append(il.set_reg(8, f"r{insn.dst}", tmp))
 
 
 def ldx(il: LowLevelILFunction, insn, size):
@@ -104,6 +108,7 @@ def exit_(il: LowLevelILFunction):
 
 
 MAP = {
+    ebpf.LD_DW_IMM: ld,
     ebpf.LD_B_REG: lambda il, insn: ldx(il, insn, 1),
     ebpf.LD_H_REG: lambda il, insn: ldx(il, insn, 2),
     ebpf.LD_W_REG: lambda il, insn: ldx(il, insn, 4),
@@ -171,9 +176,23 @@ MAP = {
 
 
 def translate(il: LowLevelILFunction, addr, data):
-    insn = ebpf.EBPFInstruction(addr, data)
+    if len(data) < 8:
+        return None
+
+    insn = ebpf.EBPFInstruction(addr, data[:ebpf.INSN_SIZE])
+
+    if insn.opc == ebpf.LD_DW_IMM:  # lddw is a special case instruction that takes 16 bytes.
+        if len(data) < ebpf.INSN_SIZE * 2:
+            return None
+        else:
+            ebpf.augment_lddw(insn, ebpf.EBPFInstruction(addr + ebpf.INSN_SIZE, data[ebpf.INSN_SIZE:ebpf.INSN_SIZE * 2]))
+            length = ebpf.INSN_SIZE * 2
+    else:
+        length = ebpf.INSN_SIZE
 
     if insn.opc in MAP:
         MAP[insn.opc](il, insn)
     else:
         il.append(il.unimplemented())
+
+    return length

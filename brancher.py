@@ -40,10 +40,22 @@ MATCH = {
 
 
 def branch(addr, data):
-    insn = ebpf.EBPFInstruction(addr, data)
+    if len(data) < ebpf.INSN_SIZE:
+        return None
+
+    insn = ebpf.EBPFInstruction(addr, data[:ebpf.INSN_SIZE])
+
+    if insn.opc == ebpf.LD_DW_IMM:  # lddw is a special case instruction that takes 16 bytes.
+        if len(data) < ebpf.INSN_SIZE * 2:
+            return None
+        else:
+            ebpf.augment_lddw(insn, ebpf.EBPFInstruction(addr + ebpf.INSN_SIZE, data[ebpf.INSN_SIZE:ebpf.INSN_SIZE * 2]))
+            length = ebpf.INSN_SIZE * 2
+    else:
+        length = ebpf.INSN_SIZE
 
     result = InstructionInfo()
-    result.length = ebpf.INSN_SIZE
+    result.length = length
 
     if insn.opc in MATCH:
         MATCH[insn.opc](insn, result)
